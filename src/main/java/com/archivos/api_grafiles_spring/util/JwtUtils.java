@@ -15,16 +15,16 @@ import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
-/*
+
 @Component
-public class jwtUtils {
+public class JwtUtils {
     @Value("${security.jwt.key.private}")
     private String privatekey;
 
     @Value("${security.jwt.user.generator}")
     private String usergenerator;
 
-    public String createToken(Authentication authentication,String sucursal, String userID){
+    public String createToken(Authentication authentication, String userID){
         Algorithm alorithm = Algorithm.HMAC256(this.privatekey);
         String username = authentication.getPrincipal().toString();
         String authorities = authentication.getAuthorities().stream()
@@ -35,7 +35,6 @@ public class jwtUtils {
                 .withIssuer(this.usergenerator)
                 .withSubject(username)
                 .withClaim("authorities", authorities)
-                .withClaim("sucursal", sucursal)
                 .withClaim("id_user", userID)
                 .withIssuedAt(new Date())
                 .withExpiresAt(new Date(System.currentTimeMillis() + 1800000))
@@ -68,4 +67,3 @@ public class jwtUtils {
         return decodedJWt.getClaims();
     }
 }
-*/

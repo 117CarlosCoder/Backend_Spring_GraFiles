@@ -5,8 +5,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@SpringBootApplication
 @RestController
+@SpringBootApplication(scanBasePackages = {"com.archivos.api_grafiles_spring"})
 public class ApiGrafilesSpringApplication {
 
     @RequestMapping("/")
