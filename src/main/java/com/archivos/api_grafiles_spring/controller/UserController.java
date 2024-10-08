@@ -29,10 +29,10 @@ public class UserController {
     private final JwtUtils jwtUtils;
 
     @Autowired
-    UserService userService;
+    private UserService userService;
 
     @Autowired
-    HttpServletRequest httpServletRequest;
+    private HttpServletRequest httpServletRequest;
 
     public UserController(JwtUtils jwtUtils) {
         this.jwtUtils = jwtUtils;
