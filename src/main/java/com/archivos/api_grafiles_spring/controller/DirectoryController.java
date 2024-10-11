@@ -1,19 +1,22 @@
 package com.archivos.api_grafiles_spring.controller;
 
+import com.archivos.api_grafiles_spring.controller.dto.DirectoryCopiDTORequest;
 import com.archivos.api_grafiles_spring.controller.dto.DirectoryDTOResponse;
 import com.archivos.api_grafiles_spring.controller.dto.DirectoryDTOResquest;
 import com.archivos.api_grafiles_spring.controller.dto.UpdateDirectoryDTORequest;
-import com.archivos.api_grafiles_spring.persistence.model.Directory;
 import com.archivos.api_grafiles_spring.service.DirectoryService;
 import com.archivos.api_grafiles_spring.util.JwtUtils;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +32,9 @@ public class DirectoryController {
 
     @Autowired
     private HttpServletRequest httpServletRequest;
+
+    @Autowired
+    private HttpServletResponse httpServletResponse;
 
     public DirectoryController(JwtUtils jwtUtils) {
         this.jwtUtils = jwtUtils;
@@ -84,6 +90,42 @@ public class DirectoryController {
         return directoryService.deleteDirectory(id, id_user);
     }
 
+    @PostMapping("/copy")
+    @ResponseStatus(HttpStatus.OK)
+    public String copyDirectory(@RequestBody DirectoryCopiDTORequest directoryCopiDTORequest){
+        System.out.println("------------------------------------------------");
+        String jwtToken = extractJwtFromCookie(httpServletRequest);
+        System.out.println("Token " + jwtToken);
+        String id_user = extractUserIDFromToken(jwtToken);
+        System.out.println("id_user " + id_user);
+        try {
+            directoryService.copyDirectory(new ObjectId(directoryCopiDTORequest.getId()),new ObjectId(directoryCopiDTORequest.getDirectory_parent_id()), id_user);
+            directoryService.count = 0;
+            System.out.println("Copiar");
+            return "Copiado";
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @PostMapping("/move")
+    @ResponseStatus(HttpStatus.OK)
+    public String moveDirectory(@RequestBody DirectoryCopiDTORequest directoryCopiDTORequest){
+        System.out.println("------------------------------------------------");
+        String jwtToken = extractJwtFromCookie(httpServletRequest);
+        System.out.println("Token " + jwtToken);
+        String id_user = extractUserIDFromToken(jwtToken);
+        System.out.println("id_user " + id_user);
+        System.out.println("mover");
+        try {
+            directoryService.moveDirectory(new ObjectId(directoryCopiDTORequest.getId()), id_user,new ObjectId(directoryCopiDTORequest.getDirectory_parent_id()));
+            return "Mover";
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
 
     private String extractJwtFromCookie(HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
@@ -101,7 +143,7 @@ public class DirectoryController {
 
     private String extractUserIDFromToken(String token) {
         try {
-            DecodedJWT decodedJWT = jwtUtils.decodeToken(token);
+            DecodedJWT decodedJWT = jwtUtils.decodeToken(token, httpServletResponse);
             Map<String, Claim> claims = decodedJWT.getClaims();
             claims.forEach((key, value) -> System.out.println(key + ": " + value.asString()));
             return decodedJWT.getClaim("id_user").asString();

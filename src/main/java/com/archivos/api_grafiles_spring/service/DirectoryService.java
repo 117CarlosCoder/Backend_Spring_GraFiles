@@ -4,28 +4,42 @@ import com.archivos.api_grafiles_spring.controller.dto.DirectoryDTOResponse;
 import com.archivos.api_grafiles_spring.controller.dto.DirectoryDTOResquest;
 import com.archivos.api_grafiles_spring.controller.dto.UpdateDirectoryDTORequest;
 import com.archivos.api_grafiles_spring.persistence.model.Directory;
+import com.archivos.api_grafiles_spring.persistence.model.File;
 import com.archivos.api_grafiles_spring.persistence.repository.DirectoryInfoRepository;
 import com.archivos.api_grafiles_spring.persistence.repository.DirectoryRepository;
+import com.archivos.api_grafiles_spring.persistence.repository.FileRepository;
+import com.mongodb.client.gridfs.model.GridFSFile;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.gridfs.GridFsTemplate;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 public class DirectoryService {
 
     @Autowired
-    private MongoTemplate mongoTemplate;
-
-    @Autowired
     private DirectoryRepository directoryRepository;
 
     @Autowired
     private DirectoryInfoRepository directoryInfoRepository;
+
+    @Autowired
+    private FileRepository fileRepository;
+
+    @Autowired
+    private GridFsTemplate gridFsTemplate;
+
+    public int count = 0;
+
 
     public String createDirectory(DirectoryDTOResquest directoryDTOResquest, String id){
         try {
@@ -53,21 +67,75 @@ public class DirectoryService {
 
     public String updateDirectory(UpdateDirectoryDTORequest updateDirectoryDTORequest, String id){
         try {
+            if (getDirectoryExist(updateDirectoryDTORequest, id) != null){
+                System.out.println("Directorio ya existente");
+                throw new RuntimeException("Directorio ya existente");
+            }else{
                 directoryRepository.updateNameByIdAndIsDeletedFalse(new ObjectId(updateDirectoryDTORequest.getId()),updateDirectoryDTORequest.getName());
+            }
         }catch (Exception e){
             throw new RuntimeException(e);
         }
         return "Directorio Actualizado";
     }
 
-    public String deleteDirectory(String id, String id_user){
+   /* public String deleteDirectory(String id, String id_user){
         try {
-            directoryRepository.newDeletedByIdAndUser(new ObjectId(id), new ObjectId(id_user));
+             directoryRepository.newDeletedByIdAndUser(new ObjectId(id), new ObjectId(id_user));
         }catch (Exception e){
             throw new RuntimeException(e);
         }
         return "Directorio Eliminado";
+    }*/
+
+    public String deleteDirectory(String id, String id_user) {
+        try {
+            Directory directory = directoryRepository.findByIdAndIsDeletedFalse(new ObjectId(id));
+
+            if (directory == null) {
+                throw new RuntimeException("Directorio no encontrado o ya eliminado.");
+            }
+
+            deleteDirectoryRecursively(directory.getId(), id_user);
+
+            return "Directorio y su contenido eliminado correctamente";
+        } catch (Exception e) {
+            throw new RuntimeException("Error al eliminar el directorio: " + e.getMessage(), e);
+        }
     }
+
+    private void deleteDirectoryRecursively(ObjectId directoryId, String id_user) {
+
+        List<File> filesInDirectory = fileRepository.findAllByUserIdAndDirectoryIdAndIsDeletedFalse(new ObjectId(id_user), directoryId);
+
+        for (File file : filesInDirectory) {
+            deleteFile(file);
+        }
+
+        List<Directory> subdirectories = directoryRepository.findByDirectoryParentAndUserAndIsDeletedFalse(directoryId, new ObjectId(id_user));
+
+        for (Directory subdirectory : subdirectories) {
+            deleteDirectoryRecursively(subdirectory.getId(), id_user);
+        }
+
+        directoryRepository.newDeletedByIdAndUser(directoryId, new ObjectId(id_user));
+    }
+
+    private void deleteFile(File file) {
+        try {
+
+            gridFsTemplate.delete(new org.springframework.data.mongodb.core.query.Query(
+                    org.springframework.data.mongodb.core.query.Criteria.where("_id").is(file.getGridFsFileId())
+            ));
+
+            file.setDeleted(true);
+            file.setUpdated(new Date());
+            fileRepository.save(file);
+        } catch (Exception e) {
+            throw new RuntimeException("Error al eliminar el archivo: " + file.getName(), e);
+        }
+    }
+
 
     public List<DirectoryDTOResponse> getDirectorys(String id, String user_id) {
         List<Directory> directories = directoryInfoRepository.findALLByDirectoryParentAndUserAndIsDeletedFalse(new ObjectId(id), new ObjectId(user_id));
@@ -86,9 +154,114 @@ public class DirectoryService {
         return directoryRepository.findByNameAndUserAndDirectoryAndDirectoryParentAndIsDeletedFalse(directoryDTOResquest.getName(), new ObjectId(user),directoryDTOResquest.getDirectory(), new ObjectId(directoryDTOResquest.getDirectory_parent_id()));
     }
 
+    public Directory getDirectoryExist( UpdateDirectoryDTORequest updateDirectoryDTORequest, String user) {
+        return directoryRepository.findByNameAndUserAndDirectoryAndIsDeletedFalse(updateDirectoryDTORequest.getName(), new ObjectId(user), updateDirectoryDTORequest.getDirectory());
+    }
+
 
     public DirectoryDTOResquest getDirectory(DirectoryDTOResquest directoryDTOResquest, String user){
         Directory directory = directoryRepository.findByNameAndUserAndDirectoryAndDirectoryParentAndIsDeletedFalse(directoryDTOResquest.getName(), new ObjectId(user),directoryDTOResquest.getDirectory(), new ObjectId(directoryDTOResquest.getDirectory_parent_id()));
         return new DirectoryDTOResquest(directory.getName(), directory.getDirectory(), directory.getDirectoryParent().toHexString());
     }
+
+    public void nameDirectoryCopy(Directory originalDirectory, String user_id) {
+        String originalName = originalDirectory.getName();
+        String newName = originalName;
+
+        int copyCount = 1;
+        Directory directoryp;
+
+        do {
+            directoryp = directoryRepository.findByNameAndUserAndDirectoryParentAndIsDeletedFalse(newName, new ObjectId(user_id), originalDirectory.getDirectoryParent());
+
+            if (directoryp != null) {
+                newName = originalName + "copy".repeat(copyCount);
+                copyCount++;
+            }
+        } while (directoryp != null);
+
+        originalDirectory.setName(newName);
+    }
+
+    public void moveDirectory(ObjectId originalDirectoryId, String user_id, ObjectId parentId){
+
+            Optional<Directory> directory = directoryRepository.findById(parentId.toHexString());
+
+        if (directory.isPresent()) {
+            directoryRepository.newupdateByIdAndDirectoryParentAndUserDirectoryAndAndIsDeletedFalse(
+                    originalDirectoryId, new ObjectId(user_id), parentId, directory.get().getDirectory() >= 0 ? directory.get().getDirectory() : 0
+            );
+        } else {
+            directoryRepository.newupdateByIdAndDirectoryParentAndUserDirectoryAndAndIsDeletedFalse(originalDirectoryId,new ObjectId(user_id),parentId, 0);
+        }
+    }
+
+
+
+    public void copyDirectory(ObjectId originalDirectoryId, ObjectId parentId, String user_id) throws FileNotFoundException {
+        Directory originalDirectory = directoryRepository.findByIdAndIsDeletedFalse(originalDirectoryId);
+
+        //Directory directoryp = directoryRepository.findByNameAndUserAndDirectoryParentAndIsDeletedFalse(originalDirectory.getName(),new ObjectId(user_id), originalDirectory.getDirectoryParent());
+
+        if (count == 0){
+            nameDirectoryCopy(originalDirectory, user_id);
+        }
+
+
+        count++;
+
+        Directory newDirectory = Directory.builder()
+                .name(originalDirectory.getName())
+                .user(originalDirectory.getUser())
+                .directory(originalDirectory.getDirectory())
+                .directoryParent(parentId)
+                .isDeleted(false)
+                .created(new Date())
+                .updated(new Date())
+                .build();
+
+        newDirectory = directoryRepository.save(newDirectory);
+
+        List<File> filesInDirectory = fileRepository.findAllByUserIdAndDirectoryIdAndIsDeletedFalse(new ObjectId(user_id), originalDirectoryId);
+        for (File originalFile : filesInDirectory) {
+
+            GridFSFile gridFsFile = gridFsTemplate.findOne(
+                    new org.springframework.data.mongodb.core.query.Query(
+                            org.springframework.data.mongodb.core.query.Criteria.where("_id").is(originalFile.getGridFsFileId())
+                    )
+            );
+
+            byte[] content = null;
+            if (gridFsFile != null) {
+                try (InputStream fileContent = gridFsTemplate.getResource(gridFsFile).getInputStream()) {
+                    content = fileContent.readAllBytes();
+                } catch (IOException e) {
+                    throw new RuntimeException("Error al leer el contenido del archivo: " + originalFile.getName(), e);
+                }
+
+                ObjectId newGridFsFileId = gridFsTemplate.store(new ByteArrayInputStream(content), originalFile.getName(), originalFile.getFileType());
+
+                File newFile = File.builder()
+                        .name(originalFile.getName())
+                        .directoryId(newDirectory.getId())
+                        .userId(originalFile.getUserId())
+                        .size(originalFile.getSize())
+                        .fileType(originalFile.getFileType())
+                        .gridFsFileId(newGridFsFileId)
+                        .isDeleted(false)
+                        .created(new Date())
+                        .updated(new Date())
+                        .build();
+                fileRepository.save(newFile);
+            } else {
+                throw new FileNotFoundException("El recurso con ID " + originalFile.getGridFsFileId() + " no existe.");
+            }
+        }
+
+        List<Directory> subdirectories = directoryRepository.findByDirectoryParentAndUserAndIsDeletedFalse(originalDirectoryId, new ObjectId(user_id));
+        for (Directory subdirectory : subdirectories) {
+            copyDirectory(subdirectory.getId(),newDirectory.getId(), user_id);
+        }
+    }
+
 }

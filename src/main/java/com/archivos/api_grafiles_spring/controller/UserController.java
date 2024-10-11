@@ -9,6 +9,7 @@ import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,6 +34,9 @@ public class UserController {
 
     @Autowired
     private HttpServletRequest httpServletRequest;
+
+    @Autowired
+    private HttpServletResponse httpServletResponse;
 
     public UserController(JwtUtils jwtUtils) {
         this.jwtUtils = jwtUtils;
@@ -64,7 +68,7 @@ public class UserController {
 
     private String extractUserIDFromToken(String token) {
         try {
-            DecodedJWT decodedJWT = jwtUtils.decodeToken(token);
+            DecodedJWT decodedJWT = jwtUtils.decodeToken(token, httpServletResponse);
             Map<String, Claim> claims = decodedJWT.getClaims();
             claims.forEach((key, value) -> System.out.println(key + ": " + value.asString()));
             return decodedJWT.getClaim("id_user").asString();

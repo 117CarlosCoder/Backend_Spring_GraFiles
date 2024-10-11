@@ -12,7 +12,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 import jakarta.servlet.http.Cookie;
@@ -22,71 +21,62 @@ import java.util.Collection;
 
 public class JwtTokenValidator extends OncePerRequestFilter {
 
-
-    private JwtUtils jwtUtils;
+    private final JwtUtils jwtUtils;
 
     public JwtTokenValidator(JwtUtils jwtUtils) {
         this.jwtUtils = jwtUtils;
     }
 
-    /*@Override
-    protected void doFilterInternal(@NonNull HttpServletRequest request,@NonNull HttpServletResponse response,@NonNull FilterChain filterChain) throws ServletException, IOException {
-        String jwtToken = request.getHeader(HttpHeaders.AUTHORIZATION);
-
-        if (jwtToken!=null){
-            jwtToken = jwtToken.substring(7);
-            DecodedJWT decodedJWT = jwtUtils.decodeToken(jwtToken);
-            String username = jwtUtils.extrectUsername(decodedJWT);
-            String  authorities = jwtUtils.extractClaim(decodedJWT,"authorities").asString();
-
-            Collection<? extends GrantedAuthority> authoritieslist= AuthorityUtils.commaSeparatedStringToAuthorityList(authorities);
-
-            SecurityContext context = SecurityContextHolder.getContext();
-            Authentication authentication = new UsernamePasswordAuthenticationToken(username,null,authoritieslist);
-            context.setAuthentication(authentication);
-            SecurityContextHolder.setContext(context);
-        }
-        filterChain.doFilter(request,response);
-
-    }*/
-
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
+        String jwtToken = getTokenFromRequest(request); // Obtener el token
 
+        if (jwtToken != null) {
+            try {
+                // Decodificar el token y establecer la autenticación
+                DecodedJWT decodedJWT = jwtUtils.decodeToken(jwtToken, response); // Pasar response aquí
+                String username = jwtUtils.extractUsername(decodedJWT);
+                String authorities = jwtUtils.extractClaim(decodedJWT, "authorities").asString();
+
+                // Convertir las autoridades en una colección
+                Collection<? extends GrantedAuthority> authoritiesList = AuthorityUtils.commaSeparatedStringToAuthorityList(authorities);
+
+                // Establecer la autenticación en el contexto de seguridad
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username, null, authoritiesList);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            } catch (Exception e) {
+                // Manejar cualquier error durante la verificación del token
+                System.out.println("Error al procesar el token JWT: " + e.getMessage());
+            }
+        }
+
+        // Continuar con la cadena de filtros
+        filterChain.doFilter(request, response);
+    }
+
+    private String getTokenFromRequest(HttpServletRequest request) {
+        // Intentar obtener el token del encabezado Authorization
         String jwtToken = request.getHeader(HttpHeaders.AUTHORIZATION);
 
+        // Si no se encuentra, buscar en las cookies
         if (jwtToken == null) {
             jwtToken = getTokenFromCookies(request);
         } else {
+            // Extraer el token de tipo Bearer
             jwtToken = jwtToken.startsWith("Bearer ") ? jwtToken.substring(7) : jwtToken;
         }
 
-        if (jwtToken != null) {
-            System.out.println("Token en :" + jwtToken);
-            DecodedJWT decodedJWT = jwtUtils.decodeToken(jwtToken);
-            String username = jwtUtils.extrectUsername(decodedJWT);
-            String authorities = jwtUtils.extractClaim(decodedJWT, "authorities").asString();
-
-            Collection<? extends GrantedAuthority> authoritiesList = AuthorityUtils.commaSeparatedStringToAuthorityList(authorities);
-
-            SecurityContext context = SecurityContextHolder.getContext();
-            Authentication authentication = new UsernamePasswordAuthenticationToken(username, null, authoritiesList);
-            context.setAuthentication(authentication);
-            SecurityContextHolder.setContext(context);
-        }
-
-        filterChain.doFilter(request, response);
+        return jwtToken; // Devuelve el token o null
     }
 
     private String getTokenFromCookies(HttpServletRequest request) {
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
                 if ("jwtToken".equals(cookie.getName())) {
-                    System.out.println(cookie.getValue());
-                    return cookie.getValue();
+                    return cookie.getValue(); // Devuelve el valor del token de la cookie
                 }
             }
         }
-        return null;
+        return null; // Devuelve null si no se encuentra el token
     }
 }

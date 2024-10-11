@@ -2,6 +2,7 @@ package com.archivos.api_grafiles_spring.persistence.model;
 
 import lombok.Builder;
 import lombok.Data;
+import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
@@ -11,7 +12,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
 @Builder
 public class UserModel {
     @Id
-    private Object id;
+    private ObjectId id;
     @Field(name = "name")
     private String name;
     @Field(name = "username")

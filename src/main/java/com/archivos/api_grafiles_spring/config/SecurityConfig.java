@@ -46,6 +46,10 @@ public class SecurityConfig {
                     http.requestMatchers(HttpMethod.POST, "/directory/**").hasAnyRole("ADMIN","EMPLOYEE");
                     http.requestMatchers(HttpMethod.PUT, "/directory/**").hasAnyRole("ADMIN","EMPLOYEE");
                     http.requestMatchers(HttpMethod.DELETE, "/directory/**").hasAnyRole("ADMIN","EMPLOYEE");
+                    http.requestMatchers(HttpMethod.GET, "/file/**").hasAnyRole("ADMIN","EMPLOYEE");
+                    http.requestMatchers(HttpMethod.POST, "/file/**").hasAnyRole("ADMIN","EMPLOYEE");
+                    http.requestMatchers(HttpMethod.PUT, "/file/**").hasAnyRole("ADMIN","EMPLOYEE");
+                    http.requestMatchers(HttpMethod.DELETE, "/file/**").hasAnyRole("ADMIN","EMPLOYEE");
                     http.requestMatchers(HttpMethod.GET, "/api/emp/**").permitAll();
                     http.requestMatchers(HttpMethod.POST, "/api/emp/**").permitAll();
                     http.requestMatchers(HttpMethod.PUT, "/api/emp/**").permitAll();
