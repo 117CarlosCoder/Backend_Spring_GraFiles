@@ -203,6 +203,11 @@ public class FileService {
         }*/
     }
 
+    public void deleteFileShare(ObjectId fileId,ObjectId user) {
+
+        directoryShareRepository.newDeletedByIdAndUser(fileId, user);
+    }
+
 
 
     public void copyFile(ObjectId fileId, ObjectId userId) {

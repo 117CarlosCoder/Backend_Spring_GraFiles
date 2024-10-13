@@ -95,7 +95,7 @@ public class FileController {
 
 
         List<FileDTOResponse> fileDTOResponses = fileService.getSharedFilesWithContent(id_user);
-
+        System.out.println("Sharedfiles " + fileDTOResponses);
         return ResponseEntity.ok(fileDTOResponses);
     }
 
@@ -172,6 +172,20 @@ public class FileController {
         }
     }
 
+    @DeleteMapping("/deletedShare")
+    public ResponseEntity<String> deleteFileShare(@RequestParam ObjectId id) {
+        String jwtToken = extractJwtFromCookie(httpServletRequest);
+        System.out.println("Token " + jwtToken);
+        String id_user = extractUserIDFromToken(jwtToken);
+        System.out.println("id_user " + id_user);
+        try {
+            fileService.deleteFileShare(id, new ObjectId(id_user));
+            return ResponseEntity.ok("File deleted successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("File deletion failed: " + e.getMessage());
+        }
+    }
+
     @PostMapping("/copy")
     public ResponseEntity<String> copyFile(@RequestParam ObjectId id) {
         String jwtToken = extractJwtFromCookie(httpServletRequest);
@@ -202,7 +216,7 @@ public class FileController {
 
     @PostMapping("/share")
     @ResponseStatus(HttpStatus.OK)
-    public String shareDirectory(@RequestParam ObjectId id , @RequestParam String email){
+    public String shareDirectory(@RequestParam String id , @RequestParam String email){
         System.out.println("------------------------------------------------");
         String jwtToken = extractJwtFromCookie(httpServletRequest);
         System.out.println("Token " + jwtToken);
@@ -210,7 +224,7 @@ public class FileController {
         System.out.println("id_user " + id_user);
         System.out.println("compartir");
         try {
-            fileService.shareDirectory(id,id_user,email);
+            fileService.shareDirectory(new ObjectId(id),id_user,email);
             return "Compartir";
         } catch (Exception e) {
             throw new RuntimeException(e);
