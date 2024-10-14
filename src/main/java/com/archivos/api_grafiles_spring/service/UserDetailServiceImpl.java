@@ -2,6 +2,7 @@ package com.archivos.api_grafiles_spring.service;
 
 import com.archivos.api_grafiles_spring.controller.dto.AuthLoginRequest;
 import com.archivos.api_grafiles_spring.controller.dto.AuthResponse;
+import com.archivos.api_grafiles_spring.controller.dto.CreateUserRequest;
 import com.archivos.api_grafiles_spring.persistence.model.RoleEnum;
 import com.archivos.api_grafiles_spring.persistence.model.UserModel;
 import com.archivos.api_grafiles_spring.persistence.repository.UserRepository;
@@ -57,7 +58,6 @@ public class UserDetailServiceImpl implements UserDetailsService {
         System.out.println(username);
         System.out.println("Rol del usuario: " + authority.getAuthority());
 
-        // Si el usuario tiene un rol de ADMIN, podrías agregar más permisos
         if (userEntity.getRole() == RoleEnum.ADMIN) {
             authorities.add(new SimpleGrantedAuthority("PERMISO_ADMIN"));
         }
@@ -67,34 +67,35 @@ public class UserDetailServiceImpl implements UserDetailsService {
                 authorities);
     }
 
-    /*public AuthResponse createUser(AuthCreateUserRequest createRoleRequest) {
+    public AuthResponse createUser(CreateUserRequest createRoleRequest) {
 
         String username = createRoleRequest.username();
         String password = createRoleRequest.password();
-        List<String> rolesRequest = createRoleRequest.roleRequest().roleListName();
 
-        Set<RoleEntity> roleEntityList = new HashSet<>(roleRepository.findRoleEntitiesByRoleEnumIn(rolesRequest));
+        UserModel userEntity = UserModel.builder()
+                .name(createRoleRequest.name())
+                .username(username)
+                .email(createRoleRequest.email())
+                .password(passwordEncoder.encode(password))
+                .role(RoleEnum.EMPLOYEE)
+                .isEnabled(true)
+                .accountNoLocked(true)
+                .accountNoExpired(true)
+                .credentialNoExpired(true)
+                .build();
 
-        if (roleEntityList.isEmpty()) {
-            throw new IllegalArgumentException("The roles specified does not exist.");
-        }
+        UserModel userSaved = userRepository.save(userEntity);
 
-        UserEntity userEntity = UserEntity.builder().username(username).password(passwordEncoder.encode(password)).roles(roleEntityList).isEnabled(true).accountNoLocked(true).accountNoExpired(true).credentialNoExpired(true).build();
-
-        UserEntity userSaved = userRepository.save(userEntity);
-
-        ArrayList<SimpleGrantedAuthority> authorities = new ArrayList<>();
-
-        userSaved.getRoles().forEach(role -> authorities.add(new SimpleGrantedAuthority("ROLE_".concat(role.getRoleEnum().name()))));
-
-        userSaved.getRoles().stream().flatMap(role -> role.getPermissionList().stream()).forEach(permission -> authorities.add(new SimpleGrantedAuthority(permission.getName())));
+        Set<SimpleGrantedAuthority> authorities = new HashSet<>();
+        authorities.add(new SimpleGrantedAuthority("ROLE_".concat(userSaved.getRole().name())));
 
         Authentication authentication = new UsernamePasswordAuthenticationToken(userSaved, null, authorities);
+        String accessToken = jwtUtils.createToken(authentication, userEntity.getId().toString());
 
-        String accessToken = jwtUtils.createToken(authentication, createRoleRequest.Sucursal(), userEntity.getId().toString());
+        return new AuthResponse("Usuario Creado con exito", accessToken, true, null);
+    }
 
-        return new AuthResponse( "User created successfully", accessToken, true,null);
-    }*/
+
 
     public AuthResponse loginUser(AuthLoginRequest authLoginRequest) {
 
@@ -110,7 +111,7 @@ public class UserDetailServiceImpl implements UserDetailsService {
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         String accessToken = jwtUtils.createToken(authentication, userEntity.getId().toString());
-        return new AuthResponse("User loged succesfully", accessToken, true, null);
+        return new AuthResponse("Inicion de Sesion Exitoso", accessToken, true, null);
     }
 
     public ResponseEntity<String> logout(Response response) {
@@ -122,22 +123,19 @@ public class UserDetailServiceImpl implements UserDetailsService {
                 .sameSite("Strict")
                 .build();
 
-
-
-        // Agregar ambas cookies a la cabecera "Set-Cookie" de la respuesta
         response.addHeader("Set-Cookie", cookie1.toString());
 
-        return ResponseEntity.ok("Logged out successfully");
+        return ResponseEntity.ok("Cierre de sesion exitoso");
     }
     public Authentication authenticate(String username, String password) {
         UserDetails userDetails = this.loadUserByUsername(username);
 
         if (userDetails == null) {
-            throw new BadCredentialsException("Invalid username or password");
+            throw new BadCredentialsException("Usuario Incorrecto");
         }
 
         if (!passwordEncoder.matches(password, userDetails.getPassword())) {
-            throw new BadCredentialsException("Incorrect Password");
+            throw new BadCredentialsException("Contraseña Incorrecta");
         }
 
         return new UsernamePasswordAuthenticationToken(username, password, userDetails.getAuthorities());

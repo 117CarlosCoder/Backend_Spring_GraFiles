@@ -23,6 +23,9 @@ public class File {
     @Field(name = "directory_id")
     private ObjectId directoryId;
 
+    @Field(name = "user_share")
+    private String userShare;
+
     @Field(name = "user_id")
     private ObjectId userId;
 

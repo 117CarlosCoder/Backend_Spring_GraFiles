@@ -1,8 +1,7 @@
 package com.archivos.api_grafiles_spring.controller;
 
+import com.archivos.api_grafiles_spring.controller.dto.ChangePasswordDTORequest;
 import com.archivos.api_grafiles_spring.controller.dto.UserInfoResponse;
-import com.archivos.api_grafiles_spring.persistence.model.Employee;
-import com.archivos.api_grafiles_spring.persistence.model.UserModel;
 import com.archivos.api_grafiles_spring.service.UserService;
 import com.archivos.api_grafiles_spring.util.JwtUtils;
 import com.auth0.jwt.interfaces.Claim;
@@ -12,14 +11,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -43,13 +39,21 @@ public class UserController {
     }
 
     @GetMapping("/get/info")
-    @ResponseStatus(HttpStatus.OK)
-    public UserInfoResponse getEmployee() {
+    public ResponseEntity<UserInfoResponse> getEmployee() {
         String jwtToken = extractJwtFromCookie(httpServletRequest);
         System.out.println("Token " + jwtToken);
         String id_user = extractUserIDFromToken(jwtToken);
         System.out.println("id_user " + id_user);
         return userService.getInfoUser(id_user);
+    }
+
+    @PostMapping("/change/password")
+    public ResponseEntity<String> changePassword(@RequestBody ChangePasswordDTORequest changePasswordDTORequest) {
+        String jwtToken = extractJwtFromCookie(httpServletRequest);
+        System.out.println("Token " + jwtToken);
+        String id_user = extractUserIDFromToken(jwtToken);
+        System.out.println("id_user " + id_user);
+        return userService.changePassword(id_user, changePasswordDTORequest);
     }
 
     private String extractJwtFromCookie(HttpServletRequest request) {

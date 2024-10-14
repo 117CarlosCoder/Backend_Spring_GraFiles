@@ -7,7 +7,7 @@ import lombok.*;
 @NoArgsConstructor
 @Getter
 @Setter
-public class DirectoryCopiDTORequest {
-    private String Id;
-    private String directory_parent_id;
+
+public class UserPasswordDTO {
+    private String password;
 }

@@ -12,9 +12,16 @@ import java.util.List;
 public interface DirectoryShareRepository extends MongoRepository<DirectoryShared, String> {
     List<DirectoryShared> findAllByUserIdAndIsDeletedFalse(ObjectId id);
 
+    List<DirectoryShared> findAllByUserIdAndIsDeletedTrue(ObjectId id);
+
+    List<DirectoryShared> findAllByDirectoryIdAndIsDeletedTrue(ObjectId id);
+
 
     @Transactional
     @Query("{'_id' : ?0, 'user_id': ?1}")
     @Update("{'$set': {'isDeleted': true}}")
     void newDeletedByIdAndUser(ObjectId id, ObjectId id_user);
+
+
+
 }

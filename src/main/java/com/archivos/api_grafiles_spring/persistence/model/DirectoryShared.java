@@ -26,6 +26,9 @@ public class DirectoryShared {
     @Field(name = "user_id")
     private ObjectId userId;
 
+    @Field(name = "user_share")
+    private String userShare;
+
     @Field(name = "size")
     private long size;
 

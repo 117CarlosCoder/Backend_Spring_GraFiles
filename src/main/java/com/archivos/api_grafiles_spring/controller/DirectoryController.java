@@ -14,6 +14,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.FileNotFoundException;
@@ -41,8 +42,7 @@ public class DirectoryController {
     }
 
     @PostMapping("/created")
-    @ResponseStatus(HttpStatus.CREATED)
-    public String directoryCreated(@RequestBody DirectoryDTOResquest directoryDTOResquest){
+    public ResponseEntity<String> directoryCreated(@RequestBody DirectoryDTOResquest directoryDTOResquest){
         String jwtToken = extractJwtFromCookie(httpServletRequest);
         System.out.println("Token " + jwtToken);
         String id_user = extractUserIDFromToken(jwtToken);
@@ -52,7 +52,7 @@ public class DirectoryController {
 
     @PutMapping("/updated")
     @ResponseStatus(HttpStatus.CREATED)
-    public String directoryUpdate(@RequestBody UpdateDirectoryDTORequest updateDirectoryDTORequest){
+    public ResponseEntity<String> directoryUpdate(@RequestBody UpdateDirectoryDTORequest updateDirectoryDTORequest){
         String jwtToken = extractJwtFromCookie(httpServletRequest);
         System.out.println("Token " + jwtToken);
         String id_user = extractUserIDFromToken(jwtToken);
@@ -61,8 +61,7 @@ public class DirectoryController {
     }
 
     @GetMapping("/gets")
-    @ResponseStatus(HttpStatus.OK)
-    public List<DirectoryDTOResponse> getDirectorys(@RequestParam String id){
+    public ResponseEntity<List<DirectoryDTOResponse>> getDirectorys(@RequestParam String id){
         String jwtToken = extractJwtFromCookie(httpServletRequest);
         System.out.println("Token " + jwtToken);
         String id_user = extractUserIDFromToken(jwtToken);

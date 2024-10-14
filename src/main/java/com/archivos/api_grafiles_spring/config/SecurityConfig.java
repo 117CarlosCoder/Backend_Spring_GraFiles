@@ -24,7 +24,6 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -42,6 +41,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(http -> {
                     http.requestMatchers(HttpMethod.POST, "/auth/**").permitAll();
                     http.requestMatchers(HttpMethod.GET, "/user/**").hasAnyRole("ADMIN","EMPLOYEE");
+                    http.requestMatchers(HttpMethod.POST, "/user/**").hasAnyRole("ADMIN","EMPLOYEE");
+                    http.requestMatchers(HttpMethod.GET, "/admin/**").hasAnyRole("ADMIN");
+                    http.requestMatchers(HttpMethod.POST, "/admin/**").hasAnyRole("ADMIN");
                     http.requestMatchers(HttpMethod.GET, "/directory/**").hasAnyRole("ADMIN","EMPLOYEE");
                     http.requestMatchers(HttpMethod.POST, "/directory/**").hasAnyRole("ADMIN","EMPLOYEE");
                     http.requestMatchers(HttpMethod.PUT, "/directory/**").hasAnyRole("ADMIN","EMPLOYEE");
@@ -54,10 +56,6 @@ public class SecurityConfig {
                     http.requestMatchers(HttpMethod.POST, "/api/emp/**").permitAll();
                     http.requestMatchers(HttpMethod.PUT, "/api/emp/**").permitAll();
                     http.requestMatchers(HttpMethod.DELETE, "/api/emp/**").permitAll();
-                    //http.requestMatchers(HttpMethod.GET, "/admin/**").hasAnyRole("ADMIN");
-                    //http.requestMatchers(HttpMethod.POST, "/admin/**").hasAnyRole("ADMIN");
-                    //http.requestMatchers(HttpMethod.POST, "/methods/post").hasAnyRole("ADMIN");
-                    //http.requestMatchers(HttpMethod.PATCH, "/methods/patch").hasAnyAuthority("REFACTOR");
                     http.anyRequest().denyAll();
                 })
                 .addFilterBefore(new JwtTokenValidator(jwtUtils), BasicAuthenticationFilter.class)
@@ -100,15 +98,15 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.addAllowedOrigin("http://localhost:3000"); // Agrega el origen permitido
-        configuration.addAllowedOrigin("http://localhost:8081"); // Agrega el origen permitido
-        configuration.addAllowedOrigin("http://localhost:80"); // Agrega el origen permitido
+        configuration.addAllowedOrigin("http://localhost:3000");
+        configuration.addAllowedOrigin("http://localhost:8081");
+        configuration.addAllowedOrigin("http://localhost:80");
         configuration.addAllowedMethod("*");
-        configuration.setAllowCredentials(true); // Permitir el uso de credenciales
-        configuration.addAllowedHeader("*"); // Permitir todos los encabezados
+        configuration.setAllowCredentials(true);
+        configuration.addAllowedHeader("*");
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration); // Aplicar CORS a todos los endpoints
+        source.registerCorsConfiguration("/**", configuration);
 
         return source;
     }

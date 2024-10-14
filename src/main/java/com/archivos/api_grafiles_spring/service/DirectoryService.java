@@ -11,7 +11,11 @@ import com.archivos.api_grafiles_spring.persistence.repository.FileRepository;
 import com.mongodb.client.gridfs.model.GridFSFile;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.gridfs.GridFsTemplate;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
@@ -41,11 +45,11 @@ public class DirectoryService {
     public int count = 0;
 
 
-    public String createDirectory(DirectoryDTOResquest directoryDTOResquest, String id){
+    public ResponseEntity<String> createDirectory(DirectoryDTOResquest directoryDTOResquest, String id){
         try {
             if (getDirectoryExist(directoryDTOResquest, id) != null){
                 System.out.println("Directorio ya existente");
-                throw new RuntimeException("Directorio ya existente");
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("El directorio ya existe.");
             }else {
                 Directory directory = Directory.builder()
                         .name(directoryDTOResquest.getName())
@@ -60,33 +64,26 @@ public class DirectoryService {
                 directoryRepository.save(directory);
             }
         }catch (Exception e){
-            throw new RuntimeException(e);
+            return  ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al crear el directorio: " + e.getMessage());
         }
-        return "Directorio Creado";
+        return  ResponseEntity.status(HttpStatus.CREATED).body("Directorio creado exitosamente.");
     }
 
-    public String updateDirectory(UpdateDirectoryDTORequest updateDirectoryDTORequest, String id){
+    public ResponseEntity<String> updateDirectory(UpdateDirectoryDTORequest updateDirectoryDTORequest, String id){
         try {
             if (getDirectoryExist(updateDirectoryDTORequest, id) != null){
                 System.out.println("Directorio ya existente");
-                throw new RuntimeException("Directorio ya existente");
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("El directorio ya existe.");
             }else{
                 directoryRepository.updateNameByIdAndIsDeletedFalse(new ObjectId(updateDirectoryDTORequest.getId()),updateDirectoryDTORequest.getName());
             }
         }catch (Exception e){
             throw new RuntimeException(e);
         }
-        return "Directorio Actualizado";
+        return  ResponseEntity.status(HttpStatus.OK).body("Directorio Actualizado.");
     }
 
-   /* public String deleteDirectory(String id, String id_user){
-        try {
-             directoryRepository.newDeletedByIdAndUser(new ObjectId(id), new ObjectId(id_user));
-        }catch (Exception e){
-            throw new RuntimeException(e);
-        }
-        return "Directorio Eliminado";
-    }*/
 
     public String deleteDirectory(String id, String id_user) {
         try {
@@ -124,9 +121,7 @@ public class DirectoryService {
     private void deleteFile(File file) {
         try {
 
-            gridFsTemplate.delete(new org.springframework.data.mongodb.core.query.Query(
-                    org.springframework.data.mongodb.core.query.Criteria.where("_id").is(file.getGridFsFileId())
-            ));
+
 
             file.setDeleted(true);
             file.setUpdated(new Date());
@@ -137,17 +132,27 @@ public class DirectoryService {
     }
 
 
-    public List<DirectoryDTOResponse> getDirectorys(String id, String user_id) {
-        List<Directory> directories = directoryInfoRepository.findALLByDirectoryParentAndUserAndIsDeletedFalse(new ObjectId(id), new ObjectId(user_id));
-        
-        return directories.stream().map(directory -> new DirectoryDTOResponse(
-                directory.getId().toHexString(),
-                directory.getName(),
-                directory.getDirectory(),
-                directory.getDirectoryParent().toHexString(),
-                directory.getCreated(),
-                directory.getUpdated()
-        )).collect(Collectors.toList());
+    public ResponseEntity<List<DirectoryDTOResponse>> getDirectorys(String id, String user_id) {
+            List<DirectoryDTOResponse> directoryDTOResponses = List.of();
+        try {
+            List<Directory> directories = directoryInfoRepository.findALLByDirectoryParentAndUserAndIsDeletedFalse(new ObjectId(id), new ObjectId(user_id));
+
+             directoryDTOResponses = directories.stream().map(directory -> new DirectoryDTOResponse(
+                    directory.getId().toHexString(),
+                    directory.getName(),
+                    directory.getDirectory(),
+                    directory.getDirectoryParent().toHexString(),
+                    directory.getCreated(),
+                    directory.getUpdated()
+            )).collect(Collectors.toList());
+
+            return ResponseEntity.status(HttpStatus.OK).body(directoryDTOResponses);
+
+        }catch (Exception e){
+            return  ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(directoryDTOResponses);
+        }
+
+
     }
 
     public Directory getDirectoryExist(DirectoryDTOResquest directoryDTOResquest, String user) {
@@ -226,8 +231,8 @@ public class DirectoryService {
         for (File originalFile : filesInDirectory) {
 
             GridFSFile gridFsFile = gridFsTemplate.findOne(
-                    new org.springframework.data.mongodb.core.query.Query(
-                            org.springframework.data.mongodb.core.query.Criteria.where("_id").is(originalFile.getGridFsFileId())
+                    new Query(
+                            Criteria.where("_id").is(originalFile.getGridFsFileId())
                     )
             );
 

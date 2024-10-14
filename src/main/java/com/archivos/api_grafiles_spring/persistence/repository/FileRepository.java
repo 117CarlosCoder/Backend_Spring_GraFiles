@@ -20,6 +20,7 @@ public interface FileRepository extends MongoRepository<File, ObjectId> {
 
     List<File> findAllByUserIdAndIsDeletedFalse(ObjectId id);
 
+    List<File> findAllByDirectoryIdAndIsDeletedTrue(ObjectId id);
     List<File> findByDirectoryId(ObjectId directoryId);
 
     List<File> findByUserId(ObjectId userId);

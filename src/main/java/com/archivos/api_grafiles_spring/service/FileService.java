@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class FileService {
@@ -61,6 +60,7 @@ public class FileService {
                 file.getId().toHexString(),
                 file.getName(),
                 file.getDirectoryId().toHexString(),
+                file.getUserShare(),
                 file.getSize(),
                 file.getFileType(),
                 file.getCreated(),
@@ -97,6 +97,7 @@ public class FileService {
                 directoryShared.getId().toHexString(),
                 directoryShared.getName(),
                 directoryShared.getDirectoryId().toHexString(),
+                directoryShared.getUserShare(),
                 directoryShared.getSize(),
                 directoryShared.getFileType(),
                 directoryShared.getCreated(),
@@ -105,7 +106,7 @@ public class FileService {
         );
     }
 
-    // Método para obtener una lista de FileDTOResponse incluyendo el contenido de GridFS
+
     public List<FileDTOResponse> getSharedFilesWithContent(String userId) throws IOException {
         List<DirectoryShared> directoryShareds = directoryShareRepository.findAllByUserIdAndIsDeletedFalse(new ObjectId(userId));
         List<FileDTOResponse> fileDTOResponses = new ArrayList<>();
@@ -127,7 +128,7 @@ public class FileService {
 
         File filerep = fileRepository.findByNameAndUserIdAndDirectoryIdAndIsDeletedFalse(file.getOriginalFilename(),new ObjectId(userId),directoryId);
 
-        if (filerep != null){
+        if (!filerep.getId().equals(id)){
             return null;
         }
         else{
@@ -144,7 +145,7 @@ public class FileService {
                 .fileType(file.getContentType())
                 .gridFsFileId(gridFsFileId)
                 .isDeleted(false)
-                .created(new Date())
+                .created(filerep.getCreated())
                 .updated(new Date())
                 .build();
 
@@ -193,14 +194,7 @@ public class FileService {
 
         fileRepository.newDeletedByIdAndUser(fileId, user);
 
-        /*gridFsTemplate.delete(new Query(Criteria.where("_id").is(fileId)));
 
-        File file = fileRepository.findByGridFsFileId(fileId);
-        if (file != null) {
-            file.setDeleted(true);
-            file.setUpdated(new Date());
-            fileRepository.save(file);
-        }*/
     }
 
     public void deleteFileShare(ObjectId fileId,ObjectId user) {
@@ -297,6 +291,7 @@ public class FileService {
                         .name(originalFile.getName())
                         .directoryId(new ObjectId("000000000000000000000000"))
                         .userId(user.getId())
+                        .userShare(email)
                         .size(originalFile.getSize())
                         .fileType(originalFile.getFileType())
                         .gridFsFileId(originalFile.getGridFsFileId())

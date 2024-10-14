@@ -29,54 +29,54 @@ public class JwtTokenValidator extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
-        String jwtToken = getTokenFromRequest(request); // Obtener el token
+        String jwtToken = getTokenFromRequest(request);
 
         if (jwtToken != null) {
             try {
-                // Decodificar el token y establecer la autenticación
-                DecodedJWT decodedJWT = jwtUtils.decodeToken(jwtToken, response); // Pasar response aquí
+
+                DecodedJWT decodedJWT = jwtUtils.decodeToken(jwtToken, response);
                 String username = jwtUtils.extractUsername(decodedJWT);
                 String authorities = jwtUtils.extractClaim(decodedJWT, "authorities").asString();
 
-                // Convertir las autoridades en una colección
+
                 Collection<? extends GrantedAuthority> authoritiesList = AuthorityUtils.commaSeparatedStringToAuthorityList(authorities);
 
-                // Establecer la autenticación en el contexto de seguridad
+
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username, null, authoritiesList);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (Exception e) {
-                // Manejar cualquier error durante la verificación del token
+
                 System.out.println("Error al procesar el token JWT: " + e.getMessage());
             }
         }
 
-        // Continuar con la cadena de filtros
+
         filterChain.doFilter(request, response);
     }
 
     private String getTokenFromRequest(HttpServletRequest request) {
-        // Intentar obtener el token del encabezado Authorization
+
         String jwtToken = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-        // Si no se encuentra, buscar en las cookies
+
         if (jwtToken == null) {
             jwtToken = getTokenFromCookies(request);
         } else {
-            // Extraer el token de tipo Bearer
+
             jwtToken = jwtToken.startsWith("Bearer ") ? jwtToken.substring(7) : jwtToken;
         }
 
-        return jwtToken; // Devuelve el token o null
+        return jwtToken;
     }
 
     private String getTokenFromCookies(HttpServletRequest request) {
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
                 if ("jwtToken".equals(cookie.getName())) {
-                    return cookie.getValue(); // Devuelve el valor del token de la cookie
+                    return cookie.getValue(); 
                 }
             }
         }
-        return null; // Devuelve null si no se encuentra el token
+        return null;
     }
 }

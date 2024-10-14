@@ -14,6 +14,7 @@ public class FileDTOResponse {
     private String Id;
     private String name;
     private String directory_id;
+    private String userShared;
     private long size;
     private String fileType;
     private Date created;

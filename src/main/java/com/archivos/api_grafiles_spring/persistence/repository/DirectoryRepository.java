@@ -28,6 +28,8 @@ public interface DirectoryRepository extends MongoRepository<Directory,String> {
 
     Directory findByNameAndUser(String name, ObjectId user);
 
+    List<Directory> findAllByDirectoryParentAndIsDeletedTrue(ObjectId id);
+
     Directory findByIdAndIsDeletedFalse(ObjectId id);
 
     Directory findByNameAndUserAndDirectoryParentAndIsDeletedFalse(String name, ObjectId user, ObjectId parent_id);
