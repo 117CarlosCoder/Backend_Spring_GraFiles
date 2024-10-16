@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 public interface FileRepository extends MongoRepository<File, ObjectId> {
-    File findByGridFsFileId(ObjectId gridFsFileId);
 
     List<File> findAllByUserIdAndDirectoryIdAndIsDeletedFalse(ObjectId userId, ObjectId directoryId);
 
@@ -18,14 +17,7 @@ public interface FileRepository extends MongoRepository<File, ObjectId> {
     @Update("{'$set': {'isDeleted': true}}")
     void newDeletedByIdAndUser(ObjectId id, ObjectId id_user);
 
-    List<File> findAllByUserIdAndIsDeletedFalse(ObjectId id);
-
     List<File> findAllByDirectoryIdAndIsDeletedTrue(ObjectId id);
-    List<File> findByDirectoryId(ObjectId directoryId);
-
-    List<File> findByUserId(ObjectId userId);
-
-    File findByIdAndName(ObjectId id, String name);
 
     File findByNameAndUserIdAndDirectoryIdAndIsDeletedFalse(String name, ObjectId user_id, ObjectId directory_id);
 

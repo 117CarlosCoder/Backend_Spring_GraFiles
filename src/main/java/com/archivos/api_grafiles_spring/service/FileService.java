@@ -275,31 +275,32 @@ public class FileService {
         fileRepository.newupdateByIdAndDirectoryParentAndUserDirectoryAndAndIsDeletedFalse(originalDirectoryId,new ObjectId(user_id),parentId);
     }
 
-
-    public void shareDirectory(ObjectId originalDirectoryId, String user_id,String email){
-        Optional<UserModel> userOptional =userRepository.findByEmail(email);
-        if (userOptional.isPresent()) {
+    public void shareFile(ObjectId originalDirectoryId, String user_id, String email) {
+        Optional<UserModel> userOptional = userRepository.findByEmail(email);
+        Optional<UserModel> userOptional2 = userRepository.findById(user_id);
+        if (userOptional.isPresent() && userOptional2.isPresent()) {
             UserModel user = userOptional.get();
+            UserModel user2 = userOptional2.get();
 
+            Optional<File> fileOptional = fileRepository.findById(originalDirectoryId);
 
-            Optional<File> file = fileRepository.findById(originalDirectoryId);
+            if (fileOptional.isPresent()) {
+                File originalFile = fileOptional.get();
 
-            if (file.isPresent()) {
-                File originalFile = file.get();
+                ObjectId newGridFsFileId = copyFileShare(originalFile.getId(), user.getId()); // Asumimos que copyFile devuelve el nuevo ID del archivo
 
                 DirectoryShared newDirectoryShared = DirectoryShared.builder()
                         .name(originalFile.getName())
-                        .directoryId(new ObjectId("000000000000000000000000"))
+                        .directoryId(new ObjectId("000000000000000000000000")) // O el ID correspondiente si es necesario
                         .userId(user.getId())
-                        .userShare(email)
+                        .userShare(user2.getEmail())
                         .size(originalFile.getSize())
                         .fileType(originalFile.getFileType())
-                        .gridFsFileId(originalFile.getGridFsFileId())
+                        .gridFsFileId(newGridFsFileId)
                         .isDeleted(false)
                         .created(new Date())
                         .updated(new Date())
                         .build();
-
 
                 directoryShareRepository.save(newDirectoryShared);
 
@@ -311,5 +312,32 @@ public class FileService {
             throw new RuntimeException("Usuario con el email proporcionado no encontrado.");
         }
     }
+
+    private ObjectId copyFileShare(ObjectId fileId, ObjectId userId) {
+        File originalFile = fileRepository.findByIdAndIsDeletedFalse(fileId);
+        if (originalFile == null) {
+            throw new RuntimeException("Archivo no encontrado o ya eliminado.");
+        }
+
+        GridFSFile gridFsFile = gridFsTemplate.findOne(new Query(Criteria.where("_id").is(originalFile.getGridFsFileId())));
+        if (gridFsFile == null) {
+            throw new RuntimeException("El archivo no existe en GridFS.");
+        }
+
+        byte[] content;
+        try (InputStream fileContent = gridFsTemplate.getResource(gridFsFile).getInputStream()) {
+            content = fileContent.readAllBytes();
+        } catch (IOException e) {
+            throw new RuntimeException("Error al leer el contenido del archivo: " + originalFile.getName(), e);
+        }
+
+        String newName = originalFile.getName();
+        ObjectId newGridFsFileId = gridFsTemplate.store(new ByteArrayInputStream(content), newName, originalFile.getFileType());
+
+        
+
+        return newGridFsFileId;
+    }
+
 
 }

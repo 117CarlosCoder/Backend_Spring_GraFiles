@@ -10,7 +10,6 @@ import com.archivos.api_grafiles_spring.persistence.model.File;
 import com.archivos.api_grafiles_spring.persistence.repository.DirectoryRepository;
 import com.archivos.api_grafiles_spring.persistence.repository.DirectoryShareRepository;
 import com.archivos.api_grafiles_spring.persistence.repository.FileRepository;
-import com.archivos.api_grafiles_spring.persistence.repository.UserRepository;
 import com.mongodb.client.gridfs.model.GridFSFile;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;

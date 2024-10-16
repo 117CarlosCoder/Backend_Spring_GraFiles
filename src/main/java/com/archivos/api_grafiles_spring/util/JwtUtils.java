@@ -24,10 +24,8 @@ public class JwtUtils {
     @Value("${security.jwt.user.generator}")
     private String usergenerator;
 
-    // La lista negra para tokens revocados
     private Set<String> tokenBlacklist = new HashSet<>();
 
-    // Método para crear el token
     public String createToken(Authentication authentication, String userID) {
         Algorithm algorithm = Algorithm.HMAC256(this.privatekey);
         String username = authentication.getPrincipal().toString();
@@ -47,10 +45,9 @@ public class JwtUtils {
                 .sign(algorithm);
     }
 
-    // Método para decodificar el token
     public DecodedJWT decodeToken(String token, HttpServletResponse response) {
         if (isTokenBlacklisted(token)) {
-            invalidateToken(response); // Llamar al método para eliminar la cookie si el token está en la lista negra
+            invalidateToken(response);
             throw new JWTVerificationException("Token inválido o revocado.");
         }
 
@@ -66,29 +63,22 @@ public class JwtUtils {
         }
     }
 
-    // Método para extraer el nombre de usuario
+
     public String extractUsername(DecodedJWT decodedJWT) {
         return decodedJWT.getSubject();
     }
 
-    // Método para extraer un claim específico
     public Claim extractClaim(DecodedJWT decodedJWT, String claim) {
         return decodedJWT.getClaim(claim);
     }
 
-    // Método para extraer todos los claims
-    public Map<String, Claim> extractAllClaims(DecodedJWT decodedJWT) {
-        return decodedJWT.getClaims();
-    }
-
-    // Método para invalidar el token y eliminar la cookie
     public void invalidateToken(HttpServletResponse response) {
         Cookie cookie = new Cookie("jwtToken", "");
-        cookie.setPath("/"); // Establecer el path correcto
-        cookie.setMaxAge(0); // Establecer a 0 para eliminar la cookie
-        cookie.setHttpOnly(true); // Asegurar que no sea accesible desde JavaScript
-        cookie.setSecure(true); // Asegurarse de que solo se envíe por HTTPS (opcional)
-        response.addCookie(cookie); // Agregar la cookie a la respuesta
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        response.addCookie(cookie);
     }
 
     // Método para verificar si el token está en la lista negra

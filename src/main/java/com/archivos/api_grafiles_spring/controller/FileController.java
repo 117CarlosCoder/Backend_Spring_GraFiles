@@ -224,7 +224,7 @@ public class FileController {
         System.out.println("id_user " + id_user);
         System.out.println("compartir");
         try {
-            fileService.shareDirectory(new ObjectId(id),id_user,email);
+            fileService.shareFile(new ObjectId(id),id_user,email);
             return "Compartir";
         } catch (Exception e) {
             throw new RuntimeException(e);
