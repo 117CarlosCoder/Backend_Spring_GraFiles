@@ -12,5 +12,6 @@ public class UpdateDirectoryDTORequest {
     private String id;
     private String name;
     private int directory;
+    private String directory_parent_id;
 
 }

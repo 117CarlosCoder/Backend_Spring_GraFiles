@@ -160,7 +160,7 @@ public class DirectoryService {
     }
 
     public Directory getDirectoryExist( UpdateDirectoryDTORequest updateDirectoryDTORequest, String user) {
-        return directoryRepository.findByNameAndUserAndDirectoryAndIsDeletedFalse(updateDirectoryDTORequest.getName(), new ObjectId(user), updateDirectoryDTORequest.getDirectory());
+        return directoryRepository.findByNameAndUserAndDirectoryAndDirectoryParentAndIsDeletedFalse(updateDirectoryDTORequest.getName(), new ObjectId(user), updateDirectoryDTORequest.getDirectory(),new ObjectId(updateDirectoryDTORequest.getDirectory_parent_id()));
     }
 
 

@@ -21,6 +21,8 @@ public interface FileRepository extends MongoRepository<File, ObjectId> {
 
     File findByNameAndUserIdAndDirectoryIdAndIsDeletedFalse(String name, ObjectId user_id, ObjectId directory_id);
 
+    File findByIdAndUserIdAndDirectoryIdAndIsDeletedFalse(ObjectId Id, ObjectId user_id, ObjectId directory_id);
+
     File findByIdAndIsDeletedFalse(ObjectId fileId);
 
     @Transactional

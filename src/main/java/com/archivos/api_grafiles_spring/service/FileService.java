@@ -128,6 +128,10 @@ public class FileService {
 
         File filerep = fileRepository.findByNameAndUserIdAndDirectoryIdAndIsDeletedFalse(file.getOriginalFilename(),new ObjectId(userId),directoryId);
 
+        if(filerep == null){
+            filerep  = fileRepository.findByIdAndUserIdAndDirectoryIdAndIsDeletedFalse(id, new ObjectId(userId),directoryId);
+        }
+
         if (!filerep.getId().equals(id)){
             return null;
         }
